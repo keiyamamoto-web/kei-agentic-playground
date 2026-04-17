@@ -75,3 +75,50 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+---
+
+## Google Workspace CLI (gws) 導入・運用ガイド
+
+本プロジェクトでは、Google Workspace 操作を自動化し、AI エージェントが自律的にデータを扱えるようにするために `gws` CLI を活用しています。
+
+### 1. インストール
+プロジェクトの `node_modules` に含まれているバイナリを使用するか、以下のコマンドで導入してください。
+
+```bash
+# プロジェクトローカルにインストール
+npm install @googleworkspace/cli
+
+# パスの確認
+./node_modules/.bin/gws version
+```
+
+### 2. 初期セットアップと認証
+
+初回使用時には、Google Cloud プロジェクトとの連携と認証が必要です。
+
+```bash
+# 認証セットアップ（ブラウザが起動します）
+./node_modules/.bin/gws auth login
+```
+
+> [!TIP]
+> 認証がうまくいかない場合は、`gws auth setup` を実行して、必要な API の有効化状態を確認してください。
+
+### 3. AI エージェント（Antigravity）との連携
+
+gws は AI エージェントが効率的に動作するように設計されています。
+
+* **構造化出力**: デフォルトで JSON 形式のレスポンスを返します。
+* **文字コードへの対応**: Shift-JIS (CP932) 形式のファイルを取得した際は、エージェント側で Python (`encoding='cp932'`) や `iconv` コマンドを用いて UTF-8 に変換して処理してください。
+* **スキル・ワークフローの活用**: `.gemini/skills` および `.agents/workflows` 内の指示書を読み込ませることで、エージェントは自動的に最適な操作を選択し、出力の品質（Markdown形式など）を維持します。
+
+### 4. 高度なコマンド（ヘルパーコマンド）
+
+API を直接叩く以外に、人間や AI が直感的に使える `+` プレフィックス付きのヘルパーコマンドが利用可能です。
+
+* `gws drive +upload <file>` : メタデータを自動構成してアップロード
+* `gws sheets +append <id> <row_data>` : スプレッドシートへ行を追加
+* `gws gmail +send` : メールの送信
+
+詳細なリファレンスはプロジェクトルートの `./gws_cli_reference.md` を参照してください。
