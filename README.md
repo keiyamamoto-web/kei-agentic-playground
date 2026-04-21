@@ -1,142 +1,138 @@
-# Antigravity 実行環境構築手順
+# Antigravity 開発環境構築ガイド
 
-## 構築の前提条件を定義する
+このリポジトリは、Python 3.12 と Gemini 3.1 Flash (Lite Preview) を使用した Antigravity プロジェクトの実行環境です。
+一から環境を構築し、現在の動作確認済み状態を再現するための手順を以下にまとめます。
 
-本手順は、Python 3.12.7環境下でGemini 3.1 Flash (Lite Preview) を利用するAntigravityプロジェクトを対象とします。gcloud CLIがシステムにインストールされていることを前提とし、プロジェクトルートディレクトリでの実行を想定しています。前提条件を揃えることで、実行時の依存関係エラーを低減します。次は、仮想環境の構築とライブラリの導入手順を示します。
+---
 
-## 仮想環境の構築および依存関係の導入を実行する
+## 1. 前提条件
 
-プロジェクトディレクトリ内で以下のコマンドを実行し、独立した仮想環境 `.venv` を構築します。`google-genai`、`google-adk`、`python-dotenv`、および `google-cloud-bigquery` をインストールします。仮想環境の利用により、システム全体のPython環境への干渉を防ぎます。次は、Google Cloud リソースへの認証手順を示します。
+以下のツールがシステムにインストールされている必要があります。
+
+- **Python 3.12**: `python3.12 --version` で確認
+- **Node.js / npm**: `node -v` / `npm -v` で確認
+- **gcloud CLI**: `gcloud --version` で確認
+- **Homebrew** (macOS の場合): パス設定に使用
+
+---
+
+## 2. Python 仮想環境の構築
+
+依存関係の競合を避け、VS Code で正しく動作させるために仮想環境を構築します。
 
 ```bash
+# プロジェクトルートで実行
 rm -rf .venv
 python3.12 -m venv .venv
+
+# 仮想環境を有効化
 source .venv/bin/activate
+
+# 依存関係のインストール
 pip install --upgrade pip
-pip install google-genai google-adk python-dotenv google-cloud-bigquery
+pip install -r requirements.txt
 ```
 
-## Google Cloud の認証を確立する
+> [!NOTE]
+> `requirements.txt` には `google-genai`, `google-adk`, `python-dotenv`, `google-cloud-bigquery` 等が含まれています。
 
-gcloud CLIを用いて対象プロジェクトへの接続と、アプリケーションのデフォルト認証情報（ADC）の生成を行います。これにより、ソースコード内に認証情報をハードコードするセキュリティリスクを排除します。ただし、ADCの有効期限が切れた場合は再実行が必要となります。次は、環境変数の設定手順を示します。
+---
+
+## 3. Node.js 環境 (gws CLI) の構築
+
+Google Workspace 操作用のコマンドラインツール `gws` をローカルに導入します。
+
+```bash
+# package.json に基づく依存関係のインストール
+npm install
+
+# パスの確認（正常にインストールされていればバージョンが表示されます）
+./node_modules/.bin/gws version
+```
+
+---
+
+## 4. 認証の設定
+
+Google Cloud および Google Workspace API へのアクセス権限を設定します。
+
+### 4.1. Google Cloud 認証 (ADC)
+
+gcloud CLI を使用して、アプリケーションのデフォルト認証情報を作成します。
 
 ```bash
 gcloud config set project dsk-agentspace-trial
 gcloud auth application-default login
 ```
 
-## 環境変数を設定する
+### 4.2. GWS CLI 認証
 
-プロジェクトルートに `.env` ファイルを作成し、以下の内容を記述します。`GOOGLE_CLOUD_LOCATION` を `global` に指定することは、プレビュー版モデルのルーティングに関するエラーを回避するための措置です。この設定により、コード側での環境依存値の動的ロードが可能となります。次は、VS Codeの拡張機能エラーを回避する手順を示します。
+`gws` コマンドを使用して、Workspace へのアクセスを認可します。
 
-```text
-GOOGLE_CLOUD_PROJECT=dsk-agentspace-trial
-GOOGLE_CLOUD_LOCATION=global
-GOOGLE_GENAI_USE_VERTEXAI=True
-AGENT_MODEL=gemini-3.1-flash-lite-preview
+```bash
+./node_modules/.bin/gws auth login
 ```
 
-## VS Code の環境スキャンエラーを回避する
+---
 
-`.vscode` ディレクトリを作成し、その配下に `settings.json` を配置して以下の設定を記述します。これにより、VS CodeのPET（Python Environment Tool）によるpyenv環境の不適切な自動スキャンを停止させ、明示的に `.venv` を参照させます。結果として、エディタ上のインポート警告やクラッシュのポップアップを排除します。次は、構築環境の疎通確認手順を示します。
+## 5. 環境変数の設定 (`.env`)
+
+プロジェクトルートに `.env` ファイルを作成し、以下の内容を設定します。
+
+```text
+# ADK用の環境変数
+GOOGLE_GENAI_USE_VERTEXAI=True
+GOOGLE_CLOUD_PROJECT=dsk-agentspace-trial
+GOOGLE_CLOUD_LOCATION=global
+AGENT_MODEL=gemini-3.1-flash-lite-preview
+TOOL_MODEL=gemini-3.1-flash-lite-preview
+
+# GWS CLI用の環境変数
+GOOGLE_WORKSPACE_PROJECT_ID=dsk-agentspace-trial
+```
+
+---
+
+## 6. VS Code の設定 (`.vscode/settings.json`)
+
+エディタが正しい Python インタープリタを認識し、エラーを出さないように設定します。
+
+`.vscode/settings.json` に以下の内容を記述します：
 
 ```json
 {
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.terminal.activateEnvInSelectedTerminal": true,
-    "python.analysis.extraPaths": ["${workspaceFolder}/.venv/lib/python3.12/site-packages"]
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+    ],
+    "python.analysis.typeCheckingMode": "basic",
+    "python.languageServer": "Pylance",
+    "terminal.integrated.env.osx": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:${env:PATH}"
+    }
 }
 ```
 
-## 疎通確認スクリプトを実行する
+---
 
-プロジェクトルート直下に `hello_adk.py` （または任意のテストファイル）を作成し、以下のコードを配置します。実行には仮想環境を有効化したターミナルで `python hello_adk.py` を使用します。このスクリプトは、ADCを経由したGemini APIへのリクエストを検証し、正常な応答が得られるかを確認するためのものです。
+## 7. 動作確認 (疎通確認)
 
-```python
-import os
-from google import genai
-from dotenv import load_dotenv
+以下のスクリプトを実行して、Gemini API との通信が正常に行えるか確認します。
 
-def main():
-    load_dotenv()
-    client = genai.Client()
-    target_model = os.getenv("AGENT_MODEL")
-    
-    print(f"Target Model: {target_model}")
+```bash
+python hello_adk/hello_adk.py
+```
 
-    try:
-        response = client.models.generate_content(
-            model=target_model,
-            contents="現在の接続状況を報告してください。"
-        )
-        print(f"Response: {response.text}")
-    except Exception as e:
-        print(f"Error: {e}")
-
-if __name__ == "__main__":
-    main()
+正常に動作すれば、Gemini からのレスポンスがターミナルに表示されます。
 
 ---
 
-## Google Workspace CLI (gws) 導入・運用ガイド
+## 付録: 開発効率化のための自動化設定 (Optional)
 
-本プロジェクトでは、Google Workspace 操作を自動化し、AI エージェントが自律的にデータを扱えるようにするために `gws` CLI を活用しています。
+ターミナル起動時やフォルダ移動時に、自動的に `.venv` を有効化し `.env` を読み込む設定です。
 
-### 1. インストール
-プロジェクトの `node_modules` に含まれているバイナリを使用するか、以下のコマンドで導入してください。
-
-```bash
-# プロジェクトローカルにインストール
-npm install @googleworkspace/cli
-
-# パスの確認
-./node_modules/.bin/gws version
-```
-
-### 2. 初期セットアップと認証
-
-初回使用時には、Google Cloud プロジェクトとの連携と認証が必要です。
-
-```bash
-# 認証セットアップ（ブラウザが起動します）
-./node_modules/.bin/gws auth login
-```
-
-> [!TIP]
-> 認証がうまくいかない場合は、`gws auth setup` を実行して、必要な API の有効化状態を確認してください。
-
-### 3. AI エージェント（Antigravity）との連携
-
-gws は AI エージェントが効率的に動作するように設計されています。
-
-* **構造化出力**: デフォルトで JSON 形式のレスポンスを返します。
-* **文字コードへの対応**: Shift-JIS (CP932) 形式のファイルを取得した際は、エージェント側で Python (`encoding='cp932'`) や `iconv` コマンドを用いて UTF-8 に変換して処理してください。
-* **スキル・ワークフローの活用**: `.gemini/skills` および `.agents/workflows` 内の指示書を読み込ませることで、エージェントは自動的に最適な操作を選択し、出力の品質（Markdown形式など）を維持します。
-
-### 4. 高度なコマンド（ヘルパーコマンド）
-
-API を直接叩く以外に、人間や AI が直感的に使える `+` プレフィックス付きのヘルパーコマンドが利用可能です。
-
-* `gws drive +upload <file>` : メタデータを自動構成してアップロード
-* `gws sheets +append <id> <row_data>` : スプレッドシートへ行を追加
-* `gws gmail +send` : メールの送信
-
----
-
-## 開発効率化：シェル環境の自動セットアップ
-
-本プロジェクトでは、ターミナル起動時やフォルダ移動時に必要な設定が自動的に有効化されるよう、シェルの設定ファイル（Global環境）を最適化しています。
-
-### 1. グローバル環境の設定 (~/.zprofile)
-
-システム全体で Node.js や Homebrew が正しく認識されるよう、ログインシェルに対して以下の設定を行っています。これにより、VS Code のターミナルや外部ツールから常に正しいツールパスにアクセスできます。
-
-* **nvm (Node Version Manager) の自動読み込み**: Node.js 環境を起動時に確立。
-* **Homebrew のパス設定**: `brew` コマンドおよびインストール済みツールのパスを優先。
-
-### 2. プロジェクト固有の自動化設定 (~/.zshrc)
-
-プロジェクトディレクトリに入った際に、自動的に仮想環境の有効化と環境変数のロードを行うスクリプトを `~/.zshrc` に組み込んでいます。これにより、手動でコマンドを打つ必要がなくなります。
+### `~/.zshrc` への追記例
 
 ```bash
 # --- プロジェクト自動セットアップ (ロード・アクティベート) ---
@@ -147,7 +143,6 @@ function load_project_settings() {
       source .venv/bin/activate
     fi
   else
-    # .venv がない場所に出たら、今の仮想環境を解除する
     if [[ -n "$VIRTUAL_ENV" ]]; then
       deactivate
     fi
@@ -159,11 +154,8 @@ function load_project_settings() {
   fi
 }
 
-# フォルダ移動時（chpwd）と起動時に自動実行
+# フォルダ移動時と起動時に自動実行
 autoload -Uz add-zsh-hook
 add-zsh-hook chpwd load_project_settings
 load_project_settings
 ```
-
-> [!IMPORTANT]
-> この設定により、カレントディレクトリに `.venv` フォルダがあれば自動的に仮想環境がアクティブになり、`.env` ファイルがあればその中の変数が export されます。フォルダを離れると、仮想環境は自動的に `deactivate` されます。
