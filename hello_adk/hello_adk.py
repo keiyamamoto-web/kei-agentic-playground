@@ -1,8 +1,12 @@
 import os
 from google import genai
 import google.auth
+from dotenv import load_dotenv
 
 def main():
+    # .envファイルから環境変数を読み込む
+    load_dotenv()
+    
     # 1. 認証情報の取得（エラー防止のため明示的に取得）
     try:
         credentials, project_id = google.auth.default()
