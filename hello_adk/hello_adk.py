@@ -14,6 +14,8 @@ def main():
         print(f"認証エラー: {e}")
         return
 
+
+
     print(f"--- Environment Check ---")
     print(f"Project ID: {project_id}")
     
