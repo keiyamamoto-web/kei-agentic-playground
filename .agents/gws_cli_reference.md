@@ -37,12 +37,14 @@ Drive, Gmail, Calendar, and every Workspace API. Zero boilerplate. Structured JS
 - [Exit Codes](#exit-codes)
 - [Architecture](#architecture)
 - [Troubleshooting](#troubleshooting)
+- [403 Insufficient Scopes](#403-insufficient-scopes-after-re-authentication)
+- [Usage Guidelines](#usage-guidelines)
 - [Development](#development)
 
 ## Prerequisites
 
 - **Node.js 18+** — for `npm install` (or download a pre-built binary from [GitHub Releases](https://github.com/googleworkspace/cli/releases))
-- **A Google Cloud project** — required for OAuth credentials. You can create one via the [Google Cloud Console](https://console.cloud.google.com/) or with the [`gcloud` CLI](https://cloud.google.com/sdk/docs/install) or with the `gws auth setup` command.
+- **A Google Cloud project** — required for OAuth credentials. You can create one via the [Google Cloud Console](https://cloud.google.com/gs/) or with the [`gcloud` CLI](https://cloud.google.com/sdk/docs/install) or with the `gws auth setup` command.
 - **A Google account** with access to Google Workspace
 
 ## Installation
@@ -321,6 +323,23 @@ gws drive --help      # shows +upload …
 | `sheets` | `+read` | Read values from a spreadsheet |
 | `docs` | `+write` | Append text to a document |
 | `chat` | `+send` | Send a message to a space |
+
+### Threaded Replies
+
+To reply to an existing thread in a space that supports threading, you **must** specify the `thread.name` in the request body AND include `messageReplyOption` in the parameters. Without this option, the API may fallback to creating a new thread.
+
+```bash
+gws chat spaces messages create \
+  --params '{"parent": "spaces/AAAA...", "messageReplyOption": "REPLY_MESSAGE_OR_FAIL"}' \
+  --json '{
+    "text": "Your reply message here",
+    "thread": {"name": "spaces/AAAA.../threads/BBBB..."}
+  }'
+```
+
+- **`REPLY_MESSAGE_OR_FAIL`**: Ensures the message is sent as a reply to the specified thread. If the thread is not found, the request fails (prevents accidental new threads).
+- **Thread ID**: Can be found in the `thread.name` field of an existing message.
+
 | `drive` | `+upload` | Upload a file with automatic metadata |
 | `calendar` | `+insert` | Create a new event |
 | `calendar" | `+agenda` | Show upcoming events (uses Google account timezone; override with `--timezone`) |
@@ -429,6 +448,18 @@ All output — success, errors, download metadata — is structured JSON.
 
 ## Troubleshooting
 
+### 403 Insufficient Scopes (after re-authentication)
+
+If you have already authenticated but later add new scopes (e.g., via `gws auth login -s chat`), the CLI may still return a 403 error. This happens because the CLI might continue using a cached access token that lacks the newly granted permissions.
+
+**Fix:** Delete the local token cache to force the CLI to generate a new access token with the updated scopes.
+
+```bash
+rm ~/.config/gws/token_cache.json
+```
+
+The CLI will automatically regenerate this file using your saved credentials on the next command.
+
 ### "Access blocked" or 403 during login
 
 Your OAuth app is in **testing mode** and your account is not listed as a test user.
@@ -494,6 +525,15 @@ If a required Google API is not enabled for your GCP project, you will see a
 > [!TIP]
 > You can also run `gws auth setup` which walks you through enabling all required
 > APIs for your project automatically.
+
+## Usage Guidelines
+
+To ensure consistency and maintainability, follow these rules when interacting with Google Workspace:
+
+1.  **Prioritize `gws` CLI**: Always use the `gws` CLI for all Google Workspace operations (Chat, Drive, Sheets, etc.). **Do not use direct `curl` commands** unless absolutely necessary for low-level debugging.
+2.  **Use Helpers where available**: Use helper commands like `+send`, `+read`, or `+upload` for simple tasks.
+3.  **Raw API for Advanced Tasks**: Use the raw API commands (e.g., `gws chat spaces messages create`) when complex parameters like `thread` or `messageReplyOption` are required.
+4.  **Documentation First**: Before running a command, check this reference or use `gws schema <command>` to verify parameters.
 
 ## Development
 
