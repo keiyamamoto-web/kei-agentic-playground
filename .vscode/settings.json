@@ -1,13 +1,11 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "python.terminal.activateEnvInSelectedTerminal": true,
-    "python.analysis.extraPaths": [
-        "${workspaceFolder}/.venv/lib/python3.12/site-packages"
-    ],
     "python.analysis.typeCheckingMode": "basic",
-    "python.languageServer": "None",
-    "ty.enable": true,
+    "python.languageServer": "Pylance",
     "terminal.integrated.env.osx": {
         "PATH": "/opt/homebrew/bin:/usr/local/bin:${env:PATH}"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "/usr/local/bin:${env:PATH}"
     }
 }
