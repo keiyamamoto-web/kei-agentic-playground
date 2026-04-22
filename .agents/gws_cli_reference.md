@@ -340,19 +340,21 @@ gws chat spaces messages create \
 - **`REPLY_MESSAGE_OR_FAIL`**: Ensures the message is sent as a reply to the specified thread. If the thread is not found, the request fails (prevents accidental new threads).
 - **Thread ID**: Can be found in the `thread.name` field of an existing message.
 
+| Service | Command | Description |
+| --- | --- | --- |
 | `drive` | `+upload` | Upload a file with automatic metadata |
 | `calendar` | `+insert` | Create a new event |
-| `calendar" | `+agenda` | Show upcoming events (uses Google account timezone; override with `--timezone`) |
+| `calendar` | `+agenda` | Show upcoming events (uses account timezone; override with `--timezone`) |
 | `script` | `+push` | Replace all files in an Apps Script project with local files |
 | `workflow` | `+standup-report` | Today's meetings + open tasks as a standup summary |
 | `workflow` | `+meeting-prep` | Prepare for your next meeting: agenda, attendees, and linked docs |
 | `workflow` | `+email-to-task` | Convert a Gmail message into a Google Tasks entry |
-| `workflow" | `+weekly-digest` | Weekly summary: this week's meetings + unread email count |
-| `workflow` | `+file-announce" | Announce a Drive file in a Chat space |
+| `workflow` | `+weekly-digest` | Weekly summary: this week's meetings + unread email count |
+| `workflow` | `+file-announce` | Announce a Drive file in a Chat space |
 | `events` | `+subscribe` | Subscribe to Workspace events and stream them as NDJSON |
 | `events` | `+renew` | Renew/reactivate Workspace Events subscriptions |
 | `modelarmor` | `+sanitize-prompt` | Sanitize a user prompt through a Model Armor template |
-| `modelarmor` | `+sanitize-response" | Sanitize a model response through a Model Armor template |
+| `modelarmor` | `+sanitize-response` | Sanitize a model response through a Model Armor template |
 | `modelarmor` | `+create-template` | Create a new Model Armor template |
 
 **Examples:**
@@ -530,10 +532,10 @@ If a required Google API is not enabled for your GCP project, you will see a
 
 To ensure consistency and maintainability, follow these rules when interacting with Google Workspace:
 
-1.  **Prioritize `gws` CLI**: Always use the `gws` CLI for all Google Workspace operations (Chat, Drive, Sheets, etc.). **Do not use direct `curl` commands** unless absolutely necessary for low-level debugging.
-2.  **Use Helpers where available**: Use helper commands like `+send`, `+read`, or `+upload` for simple tasks.
-3.  **Raw API for Advanced Tasks**: Use the raw API commands (e.g., `gws chat spaces messages create`) when complex parameters like `thread` or `messageReplyOption` are required.
-4.  **Documentation First**: Before running a command, check this reference or use `gws schema <command>` to verify parameters.
+1. **Prioritize `gws` CLI**: Always use the `gws` CLI for all Google Workspace operations (Chat, Drive, Sheets, etc.). **Do not use direct `curl` commands** unless absolutely necessary for low-level debugging.
+2. **Use Helpers where available**: Use helper commands like `+send`, `+read`, or `+upload` for simple tasks.
+3. **Raw API for Advanced Tasks**: Use the raw API commands (e.g., `gws chat spaces messages create`) when complex parameters like `thread` or `messageReplyOption` are required.
+4. **Documentation First**: Before running a command, check this reference or use `gws schema <command>` to verify parameters.
 
 ## Development
 

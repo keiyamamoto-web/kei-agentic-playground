@@ -159,3 +159,18 @@ autoload -Uz add-zsh-hook
 add-zsh-hook chpwd load_project_settings
 load_project_settings
 ```
+
+---
+
+## 8. 最近の活動 (Latest Activity)
+
+### 2026-04-22: GWS CLI の認証解決とスレッド返信の確立
+
+`gws` CLI を使用した Google Chat 連携において、以下の課題を解決し、運用ノウハウを蓄積しました。詳細は [.agents/gws_cli_reference.md](.agents/gws_cli_reference.md) に集約されています。
+
+- **認証トラブルの解決**:
+    - 権限（Scope）追加後に発生する 403 エラーを、`~/.config/gws/token_cache.json` の削除によるキャッシュ強制リフレッシュで解決。
+- **スレッド返信の「正解の型」の特定**:
+    - サイドパネルスレッドへの返信時、APIが新しいスレッドを作成してしまう問題を、`messageReplyOption: REPLY_MESSAGE_OR_FAIL` パラメータの指定により解決。
+- **ドキュメントの整備**:
+    - 認証フロー、トラブルシューティング、スレッド返信の手順をリファレンスガイドとして整備し、エージェントが自律的に Google Workspace 操作を行える基盤を構築。
