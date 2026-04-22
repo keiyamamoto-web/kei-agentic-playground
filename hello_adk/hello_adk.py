@@ -47,8 +47,8 @@ def main():
         print(f"--- Gemini Response ---")
         print(response.text)
         
-        # デバッグ用：もし thought_signature があれば表示
-        if hasattr(response.candidates[0], 'thought'):
+        # デバッグ用：もし thought があれば表示
+        if response.candidates and hasattr(response.candidates[0], 'thought'):
              print(f"\n(Thinking detected: {target_model} is processing...)")
 
     except Exception as e:
