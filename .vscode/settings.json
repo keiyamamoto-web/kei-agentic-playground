@@ -1,7 +1,7 @@
 {
     "python.terminal.activateEnvInSelectedTerminal": true,
     "python.analysis.typeCheckingMode": "basic",
-    "python.languageServer": "Pylance",
+    "python.languageServer": "Jedi",
     "terminal.integrated.env.osx": {
         "PATH": "/opt/homebrew/bin:/usr/local/bin:${env:PATH}"
     },
