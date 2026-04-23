@@ -73,6 +73,18 @@ gcloud auth application-default login
 ./node_modules/.bin/gws auth login
 ```
 
+
+### 4.3. エージェントの挙動制御 (User Rules)
+
+エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
+
+.gemini/rules/user_rules.md に以下の内容を記述することで、エージェントは常にローカルプロジェクト（WSL側）を優先し、明示的な指示がない限り外部 Workspace への書き込みを行わないようになります。
+
+- **設定ファイルパス**: .gemini/rules/user_rules.md
+- **設定の目的**: 
+    - 明示的指示なき GWS/システム Workspace 操作の禁止。
+    - WSL側のローカルディレクトリを最優先。
+    - パスの誤推測による混乱の防止。
 ---
 
 ## 5. 環境変数の設定 (`.env`)
