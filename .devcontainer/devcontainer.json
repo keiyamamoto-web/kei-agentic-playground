@@ -1,0 +1,26 @@
+{
+    "name": "Kei Agentic Playground",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.debugpy",
+                "charliermarsh.ruff",
+                "tamasfe.even-better-toml",
+                "editorconfig.editorconfig"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.languageServer": "Pylance",
+                "editor.formatOnSave": true
+            }
+        }
+    },
+    "remoteUser": "vscode"
+}
+
