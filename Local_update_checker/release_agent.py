@@ -11,7 +11,7 @@ from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.genai import types
 
-from tool_test import fetch_release_text
+from tool_test import fetch_release_text_safe as fetch_release_text
 
 # --- 1. カテゴリ定義 (完全にコード内に埋め込み) ---
 CATEGORIES = {
@@ -105,22 +105,22 @@ async def run_discovery():
     specialists_tasks = [
         run_specialist(
             "Enterprise_Specialist", "GCP & Gemini Enterprise",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で見出しを付けて報告してください。見出しは必ず [202X-XX-XX：タイトル](ソースURL) の形式にしてリンクを埋め込んでください。取得失敗したURLはリポートの最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で見出しを付けて報告してください。見出しは必ず [202X-XX-XX：タイトル](ソースURL) の形式にしてリンクを埋め込んでください。テキスト内に '[Fetch Error]' と記載されているソースのみを「取得失敗」としてリポートの最後にリストアップしてください。内容が古く更新がないだけのソースはエラーに含めず、単に無視してください。",
             CATEGORIES["GCP_Gemini_Enterprise"], target_model
         ),
         run_specialist(
             "AI_Tool_Specialist", "Gemini & NotebookLM",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。取得失敗したURLは最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
             CATEGORIES["Gemini_NotebookLM"], target_model
         ),
         run_specialist(
             "Workspace_Specialist", "Google Workspace",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。取得失敗したURLは最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
             CATEGORIES["Google_Workspace"], target_model
         ),
         run_specialist(
             "Dev_Specialist", "Google Development (Antigravity & SDKs)",
-            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。取得失敗したURLは最後に記載してください。",
+            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
             CATEGORIES["Google_Development"], target_model
         )
     ]
@@ -137,8 +137,11 @@ async def run_discovery():
         instruction=(
             f"本日の日付は {today.strftime('%Y-%m-%d')} です。サマリーは不要です。提供されたセクションをそのまま並べてください。"
             "各エージェントが作成した [タイトル](URL) 形式のリンクを必ず維持してください。"
-            f"最後に「直近24時間の主要更新」セクションを設け、{limit_24h.strftime('%Y-%m-%d')} 以降の更新（特に Gemini Enterprise）を優先して抽出してください。ここでも見出しにリンクを含めてください。"
-            "取得失敗の報告がある場合は、さらにその後に「情報取得エラーが発生したソース」としてまとめてください。"
+            f"最後に「直近24時間の主要更新」セクションを設け、{limit_24h.strftime('%Y-%m-%d')} 以降の更新（特に Gemini Enterprise）を優先して抽出してください。"
+            "リポートの最後に、技術的なステータスを必ず記載してください："
+            "1. 各エージェントから「[Fetch Error]」による報告がある場合は、「技術的な問題で取得できなかったソース」としてそれらをリストアップしてください。"
+            "2. もし「[Fetch Error]」の報告が一つもない場合は、「すべての情報ソースから正常に通信し、技術的な問題なく取得を完了しました」と明記してください。"
+            "更新がなかっただけのソースについては、エラーとして扱わず、特に言及する必要はありません。"
         )
     )
 
