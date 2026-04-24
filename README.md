@@ -9,10 +9,10 @@
 
 以下のツールがシステムにインストールされている必要があります。
 
-- **Python 3.12**: `python3.12 --version` で確認
-- **Node.js / npm**: `node -v` / `npm -v` で確認
-- **gcloud CLI**: `gcloud --version` で確認
-- **Homebrew** (macOS の場合): パス設定に使用
+* **Python 3.12**: `python3.12 --version` で確認
+* **Node.js / npm**: `node -v` / `npm -v` で確認
+* **gcloud CLI**: `gcloud --version` で確認
+* **Homebrew** (macOS の場合): パス設定に使用
 
 ---
 
@@ -73,18 +73,18 @@ gcloud auth application-default login
 ./node_modules/.bin/gws auth login
 ```
 
-
 ### 4.3. エージェントの挙動制御 (User Rules)
 
 エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
 
 .gemini/rules/user_rules.md に以下の内容を記述することで、エージェントは常にローカルプロジェクト（WSL側）を優先し、明示的な指示がない限り外部 Workspace への書き込みを行わないようになります。
 
-- **設定ファイルパス**: .gemini/rules/user_rules.md
-- **設定の目的**: 
-    - 明示的指示なき GWS/システム Workspace 操作の禁止。
-    - WSL側のローカルディレクトリを最優先。
-    - パスの誤推測による混乱の防止。
+* **設定ファイルパス**: .gemini/rules/user_rules.md
+* **設定の目的**:
+  * 明示的指示なき GWS/システム Workspace 操作の禁止。
+  * WSL側のローカルディレクトリを最優先。
+  * パスの誤推測による混乱の防止。
+
 ---
 
 ## 5. 環境変数の設定 (`.env`)
@@ -180,9 +180,9 @@ load_project_settings
 
 `gws` CLI を使用した Google Chat 連携において、以下の課題を解決し、運用ノウハウを蓄積しました。詳細は [.agents/gws_cli_reference.md](.agents/gws_cli_reference.md) に集約されています。
 
-- **認証トラブルの解決**:
-    - 権限（Scope）追加後に発生する 403 エラーを、`~/.config/gws/token_cache.json` の削除によるキャッシュ強制リフレッシュで解決。
-- **スレッド返信の「正解の型」の特定**:
-    - サイドパネルスレッドへの返信時、APIが新しいスレッドを作成してしまう問題を、`messageReplyOption: REPLY_MESSAGE_OR_FAIL` パラメータの指定により解決。
-- **ドキュメントの整備**:
-    - 認証フロー、トラブルシューティング、スレッド返信の手順をリファレンスガイドとして整備し、エージェントが自律的に Google Workspace 操作を行える基盤を構築。
+* **認証トラブルの解決**:
+  * 権限（Scope）追加後に発生する 403 エラーを、`~/.config/gws/token_cache.json` の削除によるキャッシュ強制リフレッシュで解決。
+* **スレッド返信の「正解の型」の特定**:
+  * サイドパネルスレッドへの返信時、APIが新しいスレッドを作成してしまう問題を、`messageReplyOption: REPLY_MESSAGE_OR_FAIL` パラメータの指定により解決。
+* **ドキュメントの整備**:
+  * 認証フロー、トラブルシューティング、スレッド返信の手順をリファレンスガイドとして整備し、エージェントが自律的に Google Workspace 操作を行える基盤を構築。
