@@ -11,3 +11,7 @@
         "PATH": "/opt/homebrew/bin:/usr/local/bin:${env:PATH}"
     }
 }
+
+"ty": {
+    "enable": true
+},
