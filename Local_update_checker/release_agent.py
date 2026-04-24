@@ -98,29 +98,29 @@ async def run_discovery():
 
     today = datetime.now()
     limit_7days = today - timedelta(days=7)
-    limit_24h = today - timedelta(days=1)
+    limit_48h = today - timedelta(days=2)
     target_model = f"projects/{project_id}/locations/us-central1/publishers/google/models/gemini-3.1-flash-lite-preview"
 
     # --- 2. Specialist 実行 (見出しリンク形式を指示) ---
     specialists_tasks = [
         run_specialist(
             "Enterprise_Specialist", "GCP & Gemini Enterprise",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で見出しを付けて報告してください。見出しは必ず [202X-XX-XX：タイトル](ソースURL) の形式にしてリンクを埋め込んでください。テキスト内に '[Fetch Error]' と記載されているソースのみを「取得失敗」としてリポートの最後にリストアップしてください。内容が古く更新がないだけのソースはエラーに含めず、単に無視してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で報告してください。見出しや内容はすべて日本語で記述し、見出しは [202X-XX-XX：日本語タイトル](ソースURL) の形式にしてください。各更新について、何が変更されたのか（新機能、メリット、修正点など）を技術的な詳細を含めて日本語で詳しく解説してください。テキスト内に '[Fetch Error]' と記載されているソースのみを「取得失敗」として最後にリストアップしてください。",
             CATEGORIES["GCP_Gemini_Enterprise"], target_model
         ),
         run_specialist(
             "AI_Tool_Specialist", "Gemini & NotebookLM",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや要約はすべて日本語で記述し、タイトルを [日本語タイトル](ソースURL) の形式にしてください。各更新について、どのような機能追加や変更があったのかを一般ユーザーにも分かりやすく日本語で具体的に説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Gemini_NotebookLM"], target_model
         ),
         run_specialist(
             "Workspace_Specialist", "Google Workspace",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。タイトルを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや内容はすべて日本語で記述し、タイトルを [日本語タイトル](ソースURL) の形式にしてください。各更新について、ユーザーにどのようなメリットがあるのか、操作がどう変わるのかを日本語で具体的に要約してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Google_Workspace"], target_model
         ),
         run_specialist(
             "Dev_Specialist", "Google Development (Antigravity & SDKs)",
-            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しを [タイトル](ソースURL) の形式にしてリンクを埋め込んでください。'[Fetch Error]' と明記された通信失敗ソースのみ「取得失敗」として最後に記載し、更新がないだけのものはエラーに含めないでください。",
+            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや技術解説はすべて日本語で記述し、見出しを [日本語タイトル](ソースURL) の形式にしてください。開発者にとって重要な変更点（APIの仕様変更、新機能の使い方、SDKのアップデート内容など）を日本語で技術的に詳しく説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Google_Development"], target_model
         )
     ]
@@ -135,12 +135,11 @@ async def run_discovery():
         name="FinalAggregator",
         model=target_model,
         instruction=(
-            f"本日の日付は {today.strftime('%Y-%m-%d')} です。サマリーは不要です。提供されたセクションをそのまま並べてください。"
-            "各エージェントが作成した [タイトル](URL) 形式のリンクを必ず維持してください。"
-            f"最後に「直近24時間の主要更新」セクションを設け、{limit_24h.strftime('%Y-%m-%d')} 以降の更新（特に Gemini Enterprise）を優先して抽出してください。"
-            "リポートの最後に、技術的なステータスを必ず記載してください："
-            "1. 各エージェントから「[Fetch Error]」による報告がある場合は、「技術的な問題で取得できなかったソース」としてそれらをリストアップしてください。"
-            "2. もし「[Fetch Error]」の報告が一つもない場合は、「すべての情報ソースから正常に通信し、技術的な問題なく取得を完了しました」と明記してください。"
+            f"本日の日付は {today.strftime('%Y-%m-%d %H:%M')} (JST) です。サマリーは不要です。以下の構成でリポートを構成してください：\n\n"
+            f"リポート生成時刻：{today.strftime('%Y-%m-%d %H:%M')} (JST)\n\n"
+            f"1. 【最優先】「最新の主要アップデート」セクション：全セクションの中から、特に Gemini Enterprise の最新の更新（{limit_7days.strftime('%Y-%m-%d')}以降で最も新しいもの）を必ず最上部に要約して記載してください。その他、直近48時間以内の重要な動きも併せてここにまとめてください。\n"
+            "2. 「プロダクトカテゴリごとの詳細」：各専門エージェントから提供されたセクションを順番に並べてください。各リンク形式は維持し、内容は詳細な日本語で記述してください。\n"
+            "3. 「技術的なステータス」：リポートの最後に記載してください。各エージェントから「[Fetch Error]」による最終的な失敗報告が**一つでも**ある場合は、「技術的な問題で取得できなかったソース」としてそれらをリストアップしてください。もし「[Fetch Error]」の報告が**一つもない**場合は、「すべての情報ソースから正常に通信し、技術的な問題なく取得を完了しました」とだけ明記してください。リトライの有無など、取得過程に関する説明は一切不要です。\n\n"
             "更新がなかっただけのソースについては、エラーとして扱わず、特に言及する必要はありません。"
         )
     )
