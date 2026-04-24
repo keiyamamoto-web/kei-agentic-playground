@@ -59,7 +59,7 @@ async def run_specialist(name: str, section_title: str, instruction: str, urls: 
     print(f"[{section_title}] 分析中... ({len(urls)}件)")
     content = ""
     for url in urls:
-        raw_text = fetch_release_text(url)
+        raw_text = await fetch_release_text(url)
         if "Error fetching" in raw_text:
              content += f"\n--- Source: {url} ---\n[Fetch Error] このソースの取得に失敗しました。\n"
         else:
