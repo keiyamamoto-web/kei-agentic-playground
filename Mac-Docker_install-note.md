@@ -59,3 +59,26 @@ python -c "import google.cloud.aiplatform; print(google.cloud.aiplatform.__versi
 ## 5. Tips
 - **整合性の維持**: WSL環境など他の仮想環境と構成を合わせる場合も、この `.venv` を再構築する手法で環境を統一できます。
 - **拡張機能**: `devcontainer.json` の `customizations.vscode.extensions` に拡張機能IDを記述しておくと、コンテナ起動時に自動でインストールされます。
+
+## 6. GitHub連携 (gh CLI)
+
+コンテナ内からGitHubを操作するために、GitHub CLIでの認証を行います。
+
+### 認証手順
+1. ターミナルで以下のコマンドを実行します。
+   ```bash
+   gh auth login
+   ```
+2. インタラクティブなプロンプトに従って選択します：
+   - Where do you use GitHub? **GitHub.com**
+   - Preferred protocol? **HTTPS**
+   - Authenticate Git with your GitHub credentials? **Yes**
+   - How would you like to authenticate? **Login with a web browser**
+3. 表示された **one-time code** をコピーし、Enterキーを押してブラウザを開きます。
+4. ブラウザでコードを入力し、認証を完了させます。
+
+### 状態確認
+```bash
+gh auth status
+```
+正常にログインできていれば、ユーザー名が表示されます。

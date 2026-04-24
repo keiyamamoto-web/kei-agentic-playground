@@ -12,6 +12,7 @@
 * **Python 3.12**: `python3.12 --version` で確認
 * **Node.js / npm**: `node -v` / `npm -v` で確認
 * **gcloud CLI**: `gcloud --version` で確認
+* **GitHub CLI (gh)**: `gh --version` で確認
 * **Homebrew** (macOS の場合): パス設定に使用
 
 ---
@@ -100,7 +101,17 @@ rm ~/.gemini/oauth_creds.json ~/.gemini/google_accounts.json
 gemini login
 ```
 
-### 5.4. エージェントの挙動制御 (User Rules)
+### 5.4. GitHub 認証 (gh CLI)
+
+リポジトリの操作や GitHub CLI を使用するために認証を行います。
+
+```bash
+gh auth login
+```
+
+プロンプトに従って `GitHub.com` > `HTTPS` > `Yes` > `Login with a web browser` を選択し、表示されたコードをブラウザで入力して認証します。
+
+### 5.5. エージェントの挙動制御 (User Rules)
 
 エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
 
