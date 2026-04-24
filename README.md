@@ -52,11 +52,25 @@ npm install
 
 ---
 
-## 4. 認証の設定
+## 4. Gemini CLI の構築
+
+AI エージェントとしての機能を拡張し、IDE 連携や MCP サーバー管理を行うための `gemini` CLI を導入します。
+
+```bash
+# Homebrew を使用したインストール
+brew install googleworkspace-cli
+
+# バージョンの確認
+gemini --version
+```
+
+---
+
+## 5. 認証の設定
 
 Google Cloud および Google Workspace API へのアクセス権限を設定します。
 
-### 4.1. Google Cloud 認証 (ADC)
+### 5.1. Google Cloud 認証 (ADC)
 
 gcloud CLI を使用して、アプリケーションのデフォルト認証情報を作成します。
 
@@ -65,15 +79,28 @@ gcloud config set project dsk-agentspace-trial
 gcloud auth application-default login
 ```
 
-### 4.2. GWS CLI 認証
+### 5.2. GWS CLI 認証
 
-`gws` コマンドを使用して、Workspace へのアクセスを認可します。
+`gws` CLI を使用して、Workspace へのアクセスを認可します。
 
 ```bash
 ./node_modules/.bin/gws auth login
 ```
 
-### 4.3. エージェントの挙動制御 (User Rules)
+### 5.3. Gemini CLI 認証
+
+Gemini CLI は独自のアカウント管理を行っています。コーポレートアカウント（`densan-s.co.jp`）での認証を確実に行う必要があります。
+
+```bash
+# 初回ログイン
+gemini login
+
+# 認証がループする場合やアカウントを切り替える場合のリセット
+rm ~/.gemini/oauth_creds.json ~/.gemini/google_accounts.json
+gemini login
+```
+
+### 5.4. エージェントの挙動制御 (User Rules)
 
 エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
 
@@ -87,7 +114,7 @@ gcloud auth application-default login
 
 ---
 
-## 5. 環境変数の設定 (`.env`)
+## 6. 環境変数の設定 (`.env`)
 
 プロジェクトルートに `.env` ファイルを作成し、以下の内容を設定します。
 
@@ -105,7 +132,7 @@ GOOGLE_WORKSPACE_PROJECT_ID=dsk-agentspace-trial
 
 ---
 
-## 6. VS Code の設定 (`.vscode/settings.json`)
+## 7. VS Code の設定 (`.vscode/settings.json`)
 
 エディタが正しい Python インタープリタを認識し、エラーを出さないように設定します。
 
@@ -122,13 +149,24 @@ GOOGLE_WORKSPACE_PROJECT_ID=dsk-agentspace-trial
     "python.languageServer": "Pylance",
     "terminal.integrated.env.osx": {
         "PATH": "/opt/homebrew/bin:/usr/local/bin:${env:PATH}"
-    }
+    },
+    "ty.enable": true,
+    "[markdown]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "vscode.markdown-language-features"
+    },
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "python.analysis.exclude": [
+        "**/__pyrefly_virtual__/**",
+        "**/inmemory/**"
+    ]
 }
 ```
 
 ---
 
-## 7. 動作確認 (疎通確認)
+## 8. 動作確認 (疎通確認)
 
 以下のスクリプトを実行して、Gemini API との通信が正常に行えるか確認します。
 
@@ -174,15 +212,24 @@ load_project_settings
 
 ---
 
-## 8. 最近の活動 (Latest Activity)
+## 9. カテゴリ別設定記録 (Configuration Records)
 
-### 2026-04-22: GWS CLI の認証解決とスレッド返信の確立
+過去のトラブルシューティングや特定ツール向けの詳細な運用ノウハウを、カテゴリ別に記録しています。
 
-`gws` CLI を使用した Google Chat 連携において、以下の課題を解決し、運用ノウハウを蓄積しました。詳細は [.agents/gws_cli_reference.md](.agents/gws_cli_reference.md) に集約されています。
+### GWS CLI 連携 (Google Workspace)
+
+`gws` CLI を使用した Google Chat 等の連携に関する設定です（詳細は [.agents/gws_cli_reference.md](.agents/gws_cli_reference.md) 参照）。
 
 * **認証トラブルの解決**:
-  * 権限（Scope）追加後に発生する 403 エラーを、`~/.config/gws/token_cache.json` の削除によるキャッシュ強制リフレッシュで解決。
-* **スレッド返信の「正解の型」の特定**:
-  * サイドパネルスレッドへの返信時、APIが新しいスレッドを作成してしまう問題を、`messageReplyOption: REPLY_MESSAGE_OR_FAIL` パラメータの指定により解決。
-* **ドキュメントの整備**:
-  * 認証フロー、トラブルシューティング、スレッド返信の手順をリファレンスガイドとして整備し、エージェントが自律的に Google Workspace 操作を行える基盤を構築。
+  * 権限（Scope）追加後に発生する 403 エラーは、`~/.config/gws/token_cache.json` を削除し、キャッシュを強制リフレッシュすることで解決します。
+* **スレッド返信の「正解の型」**:
+  * Google Chat のサイドパネルスレッドへ返信する際、APIが意図せず新しいスレッドを作成してしまう問題は、`messageReplyOption: REPLY_MESSAGE_OR_FAIL` パラメータを指定することで解決できます。
+
+### Gemini CLI 連携 (AI Agents)
+
+エージェント開発および IDE 連携に用いる `gemini` CLI の設定です（詳細は [.agents/gemini_cli_reference.md](.agents/gemini_cli_reference.md) 参照）。
+
+* **認証リセット手順**:
+  * 個人アカウントとコーポレートアカウントの混在による認証エラー（403 Permission Denied）が発生した場合は、`~/.gemini/` 配下の `oauth_creds.json` および `google_accounts.json` を削除し、再度 `gemini login` を行うことでコーポレートアカウントを強制的に再認識させます。
+* **IDE モード設定**:
+  * CLI とエディタ（VS Code）を連携させるには、CLI 内で `/ide enable` を実行します。これによりネイティブの Diff ビュアー等が利用可能になります。

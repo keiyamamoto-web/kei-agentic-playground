@@ -7,5 +7,15 @@
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.languageServer": "Pylance",
-    "ty.enable": true
+    "ty.enable": true,
+    "[markdown]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "vscode.markdown-language-features"
+    },
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "python.analysis.exclude": [
+        "**/__pyrefly_virtual__/**",
+        "**/inmemory/**"
+    ]
 }
