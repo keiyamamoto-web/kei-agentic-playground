@@ -32,12 +32,27 @@ async def fetch_release_text(url: str) -> str:
             
         soup = BeautifulSoup(content, 'html.parser')
         
-        # 不要なタグを排除
+        # 不要なタグやノイズになる要素（サイドバー、目次など）を排除
+        # 特にGoogle Developersサイトの長い日付リスト (.devsite-table-of-contents) を除外
+        exclude_selectors = [
+            'script', 'style', 'nav', 'footer', 'header', 'iframe',
+            '.devsite-table-of-contents', '.devsite-secondary-nav', '.devsite-book-nav',
+            '.devsite-header-background', '.devsite-tabs'
+        ]
+        for selector in exclude_selectors:
+            for element in soup.select(selector):
+                element.decompose()
+
+        # 旧来のタグベースの排除も念のため継続
         for element in soup(['script', 'style', 'nav', 'footer', 'header', 'iframe']):
             element.decompose()
             
-        # テキスト抽出（内容をしっかり読み取れるよう、文字数を拡大）
-        text = soup.get_text(separator=' ', strip=True)
+        # メインコンテンツがあればそこを優先、なければ全体
+        main_content = soup.select_one('.devsite-article-body')
+        if main_content:
+            text = main_content.get_text(separator=' ', strip=True)
+        else:
+            text = soup.get_text(separator=' ', strip=True)
         
         if len(text) < 200:
              # あまりに短い場合は、クッキー同意画面などで止まっている可能性がある
