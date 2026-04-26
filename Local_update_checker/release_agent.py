@@ -13,7 +13,7 @@ from google.genai import types
 
 from tool_test import fetch_release_text_safe as fetch_release_text
 
-# --- 1. カテゴリ定義 (完全にコード内に埋め込み) ---
+# --- 1. カテゴリ定義 ---
 CATEGORIES = {
     "GCP_Gemini_Enterprise": [
         "https://docs.cloud.google.com/vertex-ai/docs/release-notes",
@@ -43,6 +43,7 @@ CATEGORIES = {
         "https://workspaceupdates.googleblog.com/search/label/Admin%20console",
         "https://workspaceupdates.googleblog.com/search/label/Security%20and%20Compliance",
         "https://workspaceupdates.googleblog.com/search/label/Identity",
+        "https://support.google.com/a/answer/115037",
     ],
     "Google_Development": [
         "https://antigravity.google/changelog",
@@ -98,10 +99,9 @@ async def run_discovery():
 
     today = datetime.now()
     limit_7days = today - timedelta(days=7)
-    limit_48h = today - timedelta(days=2)
     target_model = f"projects/{project_id}/locations/us-central1/publishers/google/models/gemini-3.1-flash-lite-preview"
 
-    # --- 2. Specialist 実行 (見出しリンク形式を指示) ---
+    # --- 2. Specialist 実行 ---
     specialists_tasks = [
         run_specialist(
             "Enterprise_Specialist", "GCP & Gemini Enterprise",
@@ -126,8 +126,8 @@ async def run_discovery():
     ]
 
     intermediate_results = await asyncio.gather(*specialists_tasks)
-    
-    # --- 3. Final Aggregator (サマリーなし、24時間優先、リンク形式維持) ---
+
+    # --- 3. Final Aggregator ---
     print("\n[Final] 最終リポート構成中...")
     aggregated_intermediate = "\n\n".join(intermediate_results)
 
@@ -160,8 +160,7 @@ async def run_discovery():
         new_message=types.Content(parts=[types.Part.from_text(text=aggregated_intermediate)])
     ):
         if event.content and event.content.parts:
-            print("".join(p.text for p in event.content.parts if p.text) , end="", flush=True)
-    print("\n")
+            print("".join(p.text for p in event.content.parts if p.text), end="", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(run_discovery())
