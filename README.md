@@ -290,12 +290,14 @@ function cd() {
     local expected_venv
     expected_venv=$(cygpath -w "$PWD/.venv")
     if [[ "$VIRTUAL_ENV" != "$expected_venv" ]]; then
-      # venv側の自動追記をオフにして手動で制御する（2重括弧を防止）
+      # 既存のプロンプトから古い仮想環境表示の「跡」を削除（2重括弧を防止）
+      export PS1="${PS1//\((.venv)\) /}"
+      export PS1="${PS1//(.venv) /}"
+
+      # venv側の自動追記をオフにして、手動で1重のカッコを付与
       export VIRTUAL_ENV_DISABLE_PROMPT=1
       source .venv/Scripts/activate
-      if [[ ! "$PS1" =~ "(.venv)" ]]; then
-        export PS1="(.venv) $PS1"
-      fi
+      export PS1="(.venv) $PS1"
     fi
   else
     if [[ -n "$VIRTUAL_ENV" ]]; then
