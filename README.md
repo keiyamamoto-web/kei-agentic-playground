@@ -30,8 +30,22 @@
 Remove-Item -Recurse -Force .venv
 python -m venv .venv
 
-# 仮想環境を有効化
+# 仮想環境を有効化 (PowerShell)
 .\.venv\Scripts\Activate.ps1
+
+# 依存関係のインストール
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+**Git Bash を使用する場合**：
+```bash
+# プロジェクトルートで実行 (Git Bashの場合)
+rm -rf .venv
+python -m venv .venv
+
+# 仮想環境を有効化 (Git Bash)
+source .venv/Scripts/activate
 
 # 依存関係のインストール
 pip install --upgrade pip
@@ -200,3 +214,39 @@ python hello_adk/hello_adk.py
   * 個人アカウントとコーポレートアカウントの混在による認証エラー（403 Permission Denied）が発生した場合は、`~/.gemini/` 配下の `oauth_creds.json` および `google_accounts.json` を削除し、再度 `gemini login` を行うことでコーポレートアカウントを強制的に再認識させます。
 * **IDE モード設定**:
   * CLI とエディタ（VS Code）を連携させるには、CLI 内で `/ide enable` を実行します。これによりネイティブの Diff ビュアー等が利用可能になります。
+
+---
+
+## 付録: Git Bash 向け 開発効率化設定 (Optional)
+
+ターミナル（Git Bash）起動時やフォルダ移動時に、自動的に `.venv` を有効化し `.env` を読み込む設定です。
+Git Bash の設定ファイル（`~/.bashrc`）に以下を追記してください。
+
+```bash
+# --- プロジェクト自動セットアップ (ロード・アクティベート) ---
+function cd() {
+  builtin cd "$@"
+  
+  # 1. .venv の自動有効化/解除
+  if [[ -d .venv ]]; then
+    # Git Bash上での VIRTUAL_ENV は "C:\..." 形式になるため変換して比較
+    local expected_venv
+    expected_venv=$(cygpath -w "$PWD/.venv")
+    if [[ "$VIRTUAL_ENV" != "$expected_venv" ]]; then
+      source .venv/Scripts/activate
+    fi
+  else
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      deactivate
+    fi
+  fi
+
+  # 2. .env の読み込み
+  if [[ -f .env ]]; then
+    export $(grep -v '^#' .env | xargs)
+  fi
+}
+
+# 初回起動時にも実行
+cd .
+```
