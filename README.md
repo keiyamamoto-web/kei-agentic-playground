@@ -298,10 +298,16 @@ function cd() {
       export VIRTUAL_ENV_DISABLE_PROMPT=1
       source .venv/Scripts/activate
       export PS1="(.venv) $PS1"
+
+      # gwsコマンドのエイリアス設定
+      if [[ -f "./node_modules/@googleworkspace/cli/bin/gws.exe" ]]; then
+        alias gws="./node_modules/@googleworkspace/cli/bin/gws.exe"
+      fi
     fi
   else
     if [[ -n "$VIRTUAL_ENV" ]]; then
       deactivate
+      unalias gws 2>/dev/null
       # プロンプトから (.venv) を削除
       export PS1="${PS1/(.venv) /}"
     fi
