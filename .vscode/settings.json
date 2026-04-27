@@ -6,7 +6,7 @@
         "${workspaceFolder}/.venv/lib/python3.12/site-packages"
     ],
     "python.analysis.typeCheckingMode": "basic",
-    "python.languageServer": "Pylance",
+    "python.languageServer": "Jedi",
     "ty.enable": true,
     "[markdown]": {
         "editor.formatOnSave": true,
