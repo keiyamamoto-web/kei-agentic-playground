@@ -3,6 +3,10 @@
 このリポジトリは、Python 3.12 と Gemini 3.1 Flash (Lite Preview) を使用した Antigravity プロジェクトの実行環境です。
 一から環境を構築し、現在の動作確認済み状態を再現するための手順を以下にまとめます。
 
+> [!NOTE]
+> **環境移行の経緯について**:
+> 当初WSL環境への移行を試みましたが、ブラウザエージェント用のChrome拡張機能（Browser Subagent機能）がWSL環境下で正常に利用できないという制約が判明したため、移行を断念し**Windowsローカル環境（Native環境）へロールバック**して作業を継続しています。過去のWSL環境構築手順や固有の設定は、`Win-WSL_Install-note.md` に退避しています。
+
 ---
 
 ## 1. 前提条件
@@ -21,13 +25,13 @@
 
 依存関係の競合を避け、VS Code で正しく動作させるために仮想環境を構築します。
 
-```bash
-# プロジェクトルートで実行
-rm -rf .venv
-python3.12 -m venv .venv
+```powershell
+# プロジェクトルートで実行 (PowerShellの場合)
+Remove-Item -Recurse -Force .venv
+python -m venv .venv
 
 # 仮想環境を有効化
-source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
 
 # 依存関係のインストール
 pip install --upgrade pip
@@ -111,20 +115,6 @@ gh auth login
 
 プロンプトに従って `GitHub.com` > `HTTPS` > `Yes` > `Login with a web browser` を選択し、表示されたコードをブラウザで入力して認証します。
 
-### 5.5. エージェントの挙動制御 (User Rules)
-
-エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
-
-.gemini/rules/user_rules.md に以下の内容を記述することで、エージェントは常にローカルプロジェクト（WSL側）を優先し、明示的な指示がない限り外部 Workspace への書き込みを行わないようになります。
-
-* **設定ファイルパス**: .gemini/rules/user_rules.md
-* **設定の目的**:
-  * 明示的指示なき GWS/システム Workspace 操作の禁止。
-  * WSL側のローカルディレクトリを最優先。
-  * パスの誤推測による混乱の防止。
-
----
-
 ## 6. 環境変数の設定 (`.env`)
 
 プロジェクトルートに `.env` ファイルを作成し、以下の内容を設定します。
@@ -151,10 +141,10 @@ GOOGLE_WORKSPACE_PROJECT_ID=dsk-agentspace-trial
 
 ```json
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "python.terminal.activateEnvInSelectedTerminal": true,
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+        "${workspaceFolder}/.venv/Lib/site-packages"
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.languageServer": "Pylance",
@@ -186,40 +176,6 @@ python hello_adk/hello_adk.py
 ```
 
 正常に動作すれば、Gemini からのレスポンスがターミナルに表示されます。
-
----
-
-## 付録: 開発効率化のための自動化設定 (Optional)
-
-ターミナル起動時やフォルダ移動時に、自動的に `.venv` を有効化し `.env` を読み込む設定です。
-
-### `~/.zshrc` への追記例
-
-```bash
-# --- プロジェクト自動セットアップ (ロード・アクティベート) ---
-function load_project_settings() {
-  # 1. .venv の自動有効化/解除
-  if [[ -d .venv ]]; then
-    if [[ "$VIRTUAL_ENV" != "$PWD/.venv" ]]; then
-      source .venv/bin/activate
-    fi
-  else
-    if [[ -n "$VIRTUAL_ENV" ]]; then
-      deactivate
-    fi
-  fi
-
-  # 2. .env の読み込み
-  if [[ -f .env ]]; then
-    export $(grep -v '^#' .env | xargs)
-  fi
-}
-
-# フォルダ移動時と起動時に自動実行
-autoload -Uz add-zsh-hook
-add-zsh-hook chpwd load_project_settings
-load_project_settings
-```
 
 ---
 
