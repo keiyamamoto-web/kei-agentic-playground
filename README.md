@@ -38,7 +38,8 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Git Bash を使用する場合**：
+### Git Bash を使用する場合
+
 ```bash
 # プロジェクトルートで実行 (Git Bashの場合)
 rm -rf .venv
@@ -214,6 +215,62 @@ python hello_adk/hello_adk.py
   * 個人アカウントとコーポレートアカウントの混在による認証エラー（403 Permission Denied）が発生した場合は、`~/.gemini/` 配下の `oauth_creds.json` および `google_accounts.json` を削除し、再度 `gemini login` を行うことでコーポレートアカウントを強制的に再認識させます。
 * **IDE モード設定**:
   * CLI とエディタ（VS Code）を連携させるには、CLI 内で `/ide enable` を実行します。これによりネイティブの Diff ビュアー等が利用可能になります。
+
+### Python インタープリター解決の技術録 (Python Interpreter Issues)
+
+Google Antigravity（Windsurfベース）環境において、WSLからWindowsローカルへの移行や、`${workspaceFolder}` 変数の展開失敗に起因する「インタープリター認識エラー」および「スキャン無限ループ」の解決プロセスを以下にまとめます。
+
+---
+
+#### 1. 根本原因の特定
+
+* **変数展開のバグ**: IDEが `${workspaceFolder}` を実際のパスに変換する前にスキャンを開始し、存在しない文字列パスを探してスタックする。
+* **拡張機能の競合**: `Python Environments` 拡張機能が、IDE本体の設定を無視してシステム全体を再帰的にスキャンし、UI（くるくる）をフリーズさせる。
+* **パス形式の不一致**: Windows環境において、相対パス（`./`）やスラッシュ（`/`）の混在が原因でバイナリ（`python.exe`）の特定に失敗する。
+
+#### 2. 確定的な解決プロトコル
+
+##### ステップ1：競合拡張機能の無効化（最重要）
+
+バックグラウンドのスキャンループを止めるため、以下の拡張機能を「無効（Disable）」にする。
+
+* **Python Environments** (`ms-python.vscode-python-envs`)
+
+##### ステップ2：`settings.json` への絶対パス強制適用
+
+変数 `${workspaceFolder}` を使わず、ドライブレターから始まる **二重バックスラッシュ (`\\`)** 形式の絶対パスを記述する。
+
+###### パスの書き換え例
+
+```json
+{
+    "python.defaultInterpreterPath": "C:\\Users\\[ユーザー名]\\...\\.venv\\Scripts\\python.exe",
+    "python.languageServer": "None",
+    "python.locator": "jsons",
+    "python.experiments.enabled": false
+}
+```
+
+* **`python.locator: "jsons"`**: 設定ファイルに書かれたパス以外を探さないよう強制し、スキャンを停止させる。
+
+##### ステップ3：キャッシュのクリーンアップ
+
+設定反映がされない場合は、以下のディレクトリ内のキャッシュを削除して再起動する。
+
+* `%APPDATA%\Code\User\globalStorage\ms-python.python`
+
+---
+
+#### 3. 再発時のチェックリスト
+
+1. **右下のステータスバーを確認**: `3.12.x ('.venv': venv)` と表示されているか。
+2. **エラーログを確認**: `Could not resolve interpreter path` に `${workspaceFolder}` という文字列が残っていないか（残っていれば絶対パス化が不完全）。
+3. **信頼設定を確認**: ワークスペースを開いた際に「このフォルダーを信頼しますか？」に「はい」と答えているか。
+
+#### 根拠
+
+* **解決の決定打**: `Python Environments` 拡張の無効化と絶対パス指定により、IDEの不安定な変数展開プロセスを完全にバイパスできたこと。
+* **技術的整合性**: Pylanceの代わりに `ty` を使用し、`languageServer: "None"` に設定することで、IDEの負荷を下げつつ補完機能を維持できる。
 
 ---
 

@@ -82,7 +82,7 @@ async def run_specialist(name: str, section_title: str, instruction: str, urls: 
     ):
         if event.content and event.content.parts:
             result += "".join(p.text for p in event.content.parts if p.text)
-    
+
     return f"## {section_title}\n\n{result}"
 
 async def run_discovery():
