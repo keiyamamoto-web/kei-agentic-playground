@@ -1,11 +1,6 @@
 {
-    "python.defaultInterpreterPath": "C:\\Users\\keiya\\AntiGravity\\kei-agentic-playground\\.venv\\Scripts\\python.exe",
     "python.terminal.activateEnvInSelectedTerminal": true,
-    "python.analysis.extraPaths": [
-        "${workspaceFolder}/.venv/Lib/site-packages"
-    ],
-    "python.analysis.typeCheckingMode": "basic",
-    "python.languageServer": "None",
+    "python.languageServer": "Jedi",
     "ty.enable": true,
     "[markdown]": {
         "editor.formatOnSave": true,
@@ -25,5 +20,5 @@
     "python.venvFolders": [
         ".venv"
     ],
-    "python.envFile": "${workspaceFolder}\\.env"
+    "python.envFile": "${workspaceFolder}/.env"
 }
