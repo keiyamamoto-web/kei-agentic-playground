@@ -44,7 +44,7 @@ async def run_discovery():
     aggregated_content = ""
     for url in URLS:
         print(f"Fetching updates from: {url}")
-        raw_text = fetch_release_text(url)
+        raw_text = await fetch_release_text(url)
         aggregated_content += f"\n--- Source: {url} ---\n{raw_text}\n"
 
     # 3. ADK エージェントの定義

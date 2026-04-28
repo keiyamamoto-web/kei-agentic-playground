@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List
 
@@ -43,7 +44,6 @@ CATEGORIES = {
         "https://workspaceupdates.googleblog.com/search/label/Admin%20console",
         "https://workspaceupdates.googleblog.com/search/label/Security%20and%20Compliance",
         "https://workspaceupdates.googleblog.com/search/label/Identity",
-        "https://support.google.com/a/answer/115037",
     ],
     "Google_Development": [
         "https://antigravity.google/changelog",
@@ -59,12 +59,18 @@ CATEGORIES = {
 async def run_specialist(name: str, section_title: str, instruction: str, urls: List[str], target_model: str) -> str:
     print(f"[{section_title}] 分析中... ({len(urls)}件)")
     content = ""
-    for url in urls:
+    for i, url in enumerate(urls, 1):
+        print(f"  [{section_title}] ({i}/{len(urls)}) 取得中: {url}")
+        t0 = time.monotonic()
         raw_text = await fetch_release_text(url)
+        elapsed = time.monotonic() - t0
         if "Error fetching" in raw_text:
-             content += f"\n--- Source: {url} ---\n[Fetch Error] このソースの取得に失敗しました。\n"
+            print(f"  [{section_title}] ({i}/{len(urls)}) ✗ 取得失敗 ({elapsed:.1f}秒): {url}")
+            content += f"\n--- Source: {url} ---\n[Fetch Error] このソースの取得に失敗しました。\n"
         else:
-             content += f"\n--- Source URL: {url} ---\n{raw_text}\n"
+            print(f"  [{section_title}] ({i}/{len(urls)}) ✓ 取得完了 ({elapsed:.1f}秒): {url}")
+            content += f"\n--- Source URL: {url} ---\n{raw_text}\n"
+    print(f"[{section_title}] フェッチ完了。AIで分析中...")
 
     agent = LlmAgent(name=name, model=target_model, instruction=instruction)
     runner = Runner(
@@ -105,22 +111,22 @@ async def run_discovery():
     specialists_tasks = [
         run_specialist(
             "Enterprise_Specialist", "GCP & Gemini Enterprise",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で報告してください。見出しや内容はすべて日本語で記述し、見出しは [202X-XX-XX：日本語タイトル](ソースURL) の形式にしてください。各更新について、何が変更されたのか（新機能、メリット、修正点など）を技術的な詳細を含めて日本語で詳しく解説してください。テキスト内に '[Fetch Error]' と記載されているソースのみを「取得失敗」として最後にリストアップしてください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新をプロダクト単位で報告してください。見出しや内容はすべて日本語で記述し、見出しは **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、何が変更されたのか（新機能、メリット、修正点など）を技術的な詳細を含めて日本語で詳しく解説してください。テキスト内に '[Fetch Error]' と記載されているソースのみを「取得失敗」として最後にリストアップしてください。",
             CATEGORIES["GCP_Gemini_Enterprise"], target_model
         ),
         run_specialist(
             "AI_Tool_Specialist", "Gemini & NotebookLM",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや要約はすべて日本語で記述し、タイトルを [日本語タイトル](ソースURL) の形式にしてください。各更新について、どのような機能追加や変更があったのかを一般ユーザーにも分かりやすく日本語で具体的に説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや要約はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、どのような機能追加や変更があったのかを一般ユーザーにも分かりやすく日本語で具体的に説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Gemini_NotebookLM"], target_model
         ),
         run_specialist(
             "Workspace_Specialist", "Google Workspace",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや内容はすべて日本語で記述し、タイトルを [日本語タイトル](ソースURL) の形式にしてください。各更新について、ユーザーにどのようなメリットがあるのか、操作がどう変わるのかを日本語で具体的に要約してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや内容はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、ユーザーにどのようなメリットがあるのか、操作がどう変わるのかを日本語で具体的に要約してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Google_Workspace"], target_model
         ),
         run_specialist(
             "Dev_Specialist", "Google Development (Antigravity & SDKs)",
-            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや技術解説はすべて日本語で記述し、見出しを [日本語タイトル](ソースURL) の形式にしてください。開発者にとって重要な変更点（APIの仕様変更、新機能の使い方、SDKのアップデート内容など）を日本語で技術的に詳しく説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや技術解説はすべて日本語で記述し、見出しを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。開発者にとって重要な変更点（APIの仕様変更、新機能の使い方、SDKのアップデート内容など）を日本語で技術的に詳しく説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
             CATEGORIES["Google_Development"], target_model
         )
     ]
