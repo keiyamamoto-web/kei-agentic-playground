@@ -1,0 +1,28 @@
+# Antigravity AI Agent Ignore List
+# This file prevents the AI agent from indexing heavy or unnecessary files.
+
+# Dependencies
+.venv/
+node_modules/
+__pycache__/
+
+# Build and Cache
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+
+# Logs and Temp
+*.log
+tmp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
