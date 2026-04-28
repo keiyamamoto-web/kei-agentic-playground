@@ -3,6 +3,10 @@
 このリポジトリは、Python 3.12 と Gemini 3.1 Flash (Lite Preview) を使用した Antigravity プロジェクトの実行環境です。
 一から環境を構築し、現在の動作確認済み状態を再現するための手順を以下にまとめます。
 
+> [!NOTE]
+> **環境移行の経緯について**:
+> 当初WSL環境への移行を試みましたが、ブラウザエージェント用のChrome拡張機能（Browser Subagent機能）がWSL環境下で正常に利用できないという制約が判明したため、移行を断念し**Windowsローカル環境（Native環境）へロールバック**して作業を継続しています。過去のWSL環境構築手順や固有の設定は、`Win-WSL_Install-note.md` に退避しています。
+
 ---
 
 ## 1. 前提条件
@@ -21,13 +25,28 @@
 
 依存関係の競合を避け、VS Code で正しく動作させるために仮想環境を構築します。
 
-```bash
-# プロジェクトルートで実行
-rm -rf .venv
-python3.12 -m venv .venv
+```powershell
+# プロジェクトルートで実行 (PowerShellの場合)
+Remove-Item -Recurse -Force .venv
+python -m venv .venv
 
-# 仮想環境を有効化
-source .venv/bin/activate
+# 仮想環境を有効化 (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# 依存関係のインストール
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Git Bash を使用する場合
+
+```bash
+# プロジェクトルートで実行 (Git Bashの場合)
+rm -rf .venv
+python -m venv .venv
+
+# 仮想環境を有効化 (Git Bash)
+source .venv/Scripts/activate
 
 # 依存関係のインストール
 pip install --upgrade pip
@@ -111,20 +130,6 @@ gh auth login
 
 プロンプトに従って `GitHub.com` > `HTTPS` > `Yes` > `Login with a web browser` を選択し、表示されたコードをブラウザで入力して認証します。
 
-### 5.5. エージェントの挙動制御 (User Rules)
-
-エージェントが Workspace (GWS) やシステム上の Workspace URI に対して、意図しない自動操作や同期を行わないように制限を設定します。
-
-.gemini/rules/user_rules.md に以下の内容を記述することで、エージェントは常にローカルプロジェクト（WSL側）を優先し、明示的な指示がない限り外部 Workspace への書き込みを行わないようになります。
-
-* **設定ファイルパス**: .gemini/rules/user_rules.md
-* **設定の目的**:
-  * 明示的指示なき GWS/システム Workspace 操作の禁止。
-  * WSL側のローカルディレクトリを最優先。
-  * パスの誤推測による混乱の防止。
-
----
-
 ## 6. 環境変数の設定 (`.env`)
 
 プロジェクトルートに `.env` ファイルを作成し、以下の内容を設定します。
@@ -151,10 +156,10 @@ GOOGLE_WORKSPACE_PROJECT_ID=dsk-agentspace-trial
 
 ```json
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "python.terminal.activateEnvInSelectedTerminal": true,
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+        "${workspaceFolder}/.venv/Lib/site-packages"
     ],
     "python.analysis.typeCheckingMode": "basic",
     "python.languageServer": "Pylance",
@@ -189,40 +194,6 @@ python hello_adk/hello_adk.py
 
 ---
 
-## 付録: 開発効率化のための自動化設定 (Optional)
-
-ターミナル起動時やフォルダ移動時に、自動的に `.venv` を有効化し `.env` を読み込む設定です。
-
-### `~/.zshrc` への追記例
-
-```bash
-# --- プロジェクト自動セットアップ (ロード・アクティベート) ---
-function load_project_settings() {
-  # 1. .venv の自動有効化/解除
-  if [[ -d .venv ]]; then
-    if [[ "$VIRTUAL_ENV" != "$PWD/.venv" ]]; then
-      source .venv/bin/activate
-    fi
-  else
-    if [[ -n "$VIRTUAL_ENV" ]]; then
-      deactivate
-    fi
-  fi
-
-  # 2. .env の読み込み
-  if [[ -f .env ]]; then
-    export $(grep -v '^#' .env | xargs)
-  fi
-}
-
-# フォルダ移動時と起動時に自動実行
-autoload -Uz add-zsh-hook
-add-zsh-hook chpwd load_project_settings
-load_project_settings
-```
-
----
-
 ## 9. カテゴリ別設定記録 (Configuration Records)
 
 過去のトラブルシューティングや特定ツール向けの詳細な運用ノウハウを、カテゴリ別に記録しています。
@@ -244,3 +215,110 @@ load_project_settings
   * 個人アカウントとコーポレートアカウントの混在による認証エラー（403 Permission Denied）が発生した場合は、`~/.gemini/` 配下の `oauth_creds.json` および `google_accounts.json` を削除し、再度 `gemini login` を行うことでコーポレートアカウントを強制的に再認識させます。
 * **IDE モード設定**:
   * CLI とエディタ（VS Code）を連携させるには、CLI 内で `/ide enable` を実行します。これによりネイティブの Diff ビュアー等が利用可能になります。
+
+### Python インタープリター解決の技術録 (Python Interpreter Issues)
+
+Google Antigravity（Windsurfベース）環境において、WSLからWindowsローカルへの移行や、`${workspaceFolder}` 変数の展開失敗に起因する「インタープリター認識エラー」および「スキャン無限ループ」の解決プロセスを以下にまとめます。
+
+---
+
+#### 1. 根本原因の特定
+
+* **変数展開のバグ**: IDEが `${workspaceFolder}` を実際のパスに変換する前にスキャンを開始し、存在しない文字列パスを探してスタックする。
+* **拡張機能の競合**: `Python Environments` 拡張機能が、IDE本体の設定を無視してシステム全体を再帰的にスキャンし、UI（くるくる）をフリーズさせる。
+* **パス形式の不一致**: Windows環境において、相対パス（`./`）やスラッシュ（`/`）の混在が原因でバイナリ（`python.exe`）の特定に失敗する。
+
+#### 2. 確定的な解決プロトコル
+
+##### ステップ1：競合拡張機能の無効化（最重要）
+
+バックグラウンドのスキャンループを止めるため、以下の拡張機能を「無効（Disable）」にする。
+
+* **Python Environments** (`ms-python.vscode-python-envs`)
+
+##### ステップ2：`settings.json` への絶対パス強制適用
+
+変数 `${workspaceFolder}` を使わず、ドライブレターから始まる **二重バックスラッシュ (`\\`)** 形式の絶対パスを記述する。
+
+###### パスの書き換え例
+
+```json
+{
+    "python.defaultInterpreterPath": "C:\\Users\\[ユーザー名]\\...\\.venv\\Scripts\\python.exe",
+    "python.languageServer": "None",
+    "python.locator": "jsons",
+    "python.experiments.enabled": false
+}
+```
+
+* **`python.locator: "jsons"`**: 設定ファイルに書かれたパス以外を探さないよう強制し、スキャンを停止させる。
+
+##### ステップ3：キャッシュのクリーンアップ
+
+設定反映がされない場合は、以下のディレクトリ内のキャッシュを削除して再起動する。
+
+* `%APPDATA%\Code\User\globalStorage\ms-python.python`
+
+---
+
+#### 3. 再発時のチェックリスト
+
+1. **右下のステータスバーを確認**: `3.12.x ('.venv': venv)` と表示されているか。
+2. **エラーログを確認**: `Could not resolve interpreter path` に `${workspaceFolder}` という文字列が残っていないか（残っていれば絶対パス化が不完全）。
+3. **信頼設定を確認**: ワークスペースを開いた際に「このフォルダーを信頼しますか？」に「はい」と答えているか。
+
+#### 根拠
+
+* **解決の決定打**: `Python Environments` 拡張の無効化と絶対パス指定により、IDEの不安定な変数展開プロセスを完全にバイパスできたこと。
+* **技術的整合性**: Pylanceの代わりに `ty` を使用し、`languageServer: "None"` に設定することで、IDEの負荷を下げつつ補完機能を維持できる。
+
+---
+
+## 付録: Git Bash 向け 開発効率化設定 (Optional)
+
+ターミナル（Git Bash）起動時やフォルダ移動時に、自動的に `.venv` を有効化し `.env` を読み込む設定です。
+Git Bash の設定ファイル（`~/.bashrc`）に以下を追記してください。
+
+```bash
+# --- プロジェクト自動セットアップ (ロード・アクティベート) ---
+function cd() {
+  builtin cd "$@"
+  
+  # 1. .venv の自動有効化/解除
+  if [[ -d .venv ]]; then
+    # Git Bash上での VIRTUAL_ENV は "C:\..." 形式になるため変換して比較
+    local expected_venv
+    expected_venv=$(cygpath -w "$PWD/.venv")
+    if [[ "$VIRTUAL_ENV" != "$expected_venv" ]]; then
+      # 既存のプロンプトから古い仮想環境表示の「跡」を削除（2重括弧を防止）
+      export PS1="${PS1//\((.venv)\) /}"
+      export PS1="${PS1//(.venv) /}"
+
+      # venv側の自動追記をオフにして、手動で1重のカッコを付与
+      export VIRTUAL_ENV_DISABLE_PROMPT=1
+      source .venv/Scripts/activate
+      export PS1="(.venv) $PS1"
+
+      # gwsコマンドのエイリアス設定
+      if [[ -f "./node_modules/@googleworkspace/cli/bin/gws.exe" ]]; then
+        alias gws="./node_modules/@googleworkspace/cli/bin/gws.exe"
+      fi
+    fi
+  else
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+      deactivate
+      unalias gws 2>/dev/null
+      # プロンプトから (.venv) を削除
+      export PS1="${PS1/(.venv) /}"
+    fi
+  fi
+
+  # 2. .env の読み込み
+  if [[ -f .env ]]; then
+    export $(grep -v '^#' .env | xargs)
+  fi
+}
+
+# 初回起動時にも実行
+cd .
+```
