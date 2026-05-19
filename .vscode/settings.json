@@ -1,7 +1,6 @@
 {
     "python.terminal.activateEnvInSelectedTerminal": true,
     "python.languageServer": "Jedi",
-    "ty.enable": true,
     "[markdown]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "vscode.markdown-language-features"
