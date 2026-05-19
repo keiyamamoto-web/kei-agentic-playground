@@ -2,7 +2,7 @@ import asyncio
 import os
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from dotenv import load_dotenv
 import google.auth
@@ -56,9 +56,10 @@ CATEGORIES = {
     ]
 }
 
-async def run_specialist(name: str, section_title: str, instruction: str, urls: List[str], target_model: str) -> str:
+async def run_specialist(name: str, section_title: str, instruction: str, urls: List[str], target_model: str) -> Tuple[str, List[str]]:
     print(f"[{section_title}] 分析中... ({len(urls)}件)")
     content = ""
+    failed_urls = []
     for i, url in enumerate(urls, 1):
         print(f"  [{section_title}] ({i}/{len(urls)}) 取得中: {url}")
         t0 = time.monotonic()
@@ -66,11 +67,14 @@ async def run_specialist(name: str, section_title: str, instruction: str, urls: 
         elapsed = time.monotonic() - t0
         if "Error fetching" in raw_text:
             print(f"  [{section_title}] ({i}/{len(urls)}) ✗ 取得失敗 ({elapsed:.1f}秒): {url}")
-            content += f"\n--- Source: {url} ---\n[Fetch Error] このソースの取得に失敗しました。\n"
+            failed_urls.append(url)
         else:
             print(f"  [{section_title}] ({i}/{len(urls)}) ✓ 取得完了 ({elapsed:.1f}秒): {url}")
             content += f"\n--- Source URL: {url} ---\n{raw_text}\n"
     print(f"[{section_title}] フェッチ完了。AIで分析中...")
+
+    if not content:
+        return f"## {section_title}\n\n更新情報は見つかりませんでした。", failed_urls
 
     agent = LlmAgent(name=name, model=target_model, instruction=instruction)
     runner = Runner(
@@ -89,7 +93,7 @@ async def run_specialist(name: str, section_title: str, instruction: str, urls: 
         if event.content and event.content.parts:
             result += "".join(p.text for p in event.content.parts if p.text)
 
-    return f"## {section_title}\n\n{result}"
+    return f"## {section_title}\n\n{result}", failed_urls
 
 async def run_discovery():
     load_dotenv()
@@ -105,7 +109,7 @@ async def run_discovery():
 
     today = datetime.now()
     limit_7days = today - timedelta(days=7)
-    target_model = f"projects/{project_id}/locations/us-central1/publishers/google/models/gemini-3.1-flash-lite-preview"
+    target_model = f"projects/{project_id}/locations/us-central1/publishers/google/models/gemini-3.1-flash-lite"
 
     # --- 2. Specialist 実行 ---
     specialists_tasks = [
@@ -116,26 +120,37 @@ async def run_discovery():
         ),
         run_specialist(
             "AI_Tool_Specialist", "Gemini & NotebookLM",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや要約はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、どのような機能追加や変更があったのかを一般ユーザーにも分かりやすく日本語で具体的に説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや要約はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、どのような機能追加や変更があったのかを一般ユーザーにも分かりやすく日本語で具体的に説明してください。更新がないソースについては言及しないでください。",
             CATEGORIES["Gemini_NotebookLM"], target_model
         ),
         run_specialist(
             "Workspace_Specialist", "Google Workspace",
-            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや内容はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、ユーザーにどのようなメリットがあるのか、操作がどう変わるのかを日本語で具体的に要約してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはプロダクトアナリストです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや内容はすべて日本語で記述し、タイトルを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。各更新について、ユーザーにどのようなメリットがあるのか、操作がどう変わるのかを日本語で具体的に要約してください。更新がないソースについては言及しないでください。",
             CATEGORIES["Google_Workspace"], target_model
         ),
         run_specialist(
             "Dev_Specialist", "Google Development (Antigravity & SDKs)",
-            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや技術解説はすべて日本語で記述し、見出しを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。開発者にとって重要な変更点（APIの仕様変更、新機能の使い方、SDKのアップデート内容など）を日本語で技術的に詳しく説明してください。'[Fetch Error]' と明記されたソースのみ「取得失敗」として最後に記載してください。",
+            f"あなたはデベロッパーアドボケイトです。{limit_7days.strftime('%Y-%m-%d')} 以降の更新を抽出してください。見出しや技術解説はすべて日本語で記述し、見出しを **必ず** [YYYY-MM-DD：日本語タイトル](ソースURL) の形式（発表日を先頭に記載）にしてください。開発者にとって重要な変更点（APIの仕様変更、新機能の使い方、SDKのアップデート内容など）を日本語で技術的に詳しく説明してください。更新がないソースについては言及しないでください。",
             CATEGORIES["Google_Development"], target_model
         )
     ]
 
-    intermediate_results = await asyncio.gather(*specialists_tasks)
+    intermediate_results_with_errors = await asyncio.gather(*specialists_tasks)
+
+    intermediate_results = []
+    all_failed_urls = []
+    for result, failed in intermediate_results_with_errors:
+        intermediate_results.append(result)
+        all_failed_urls.extend(failed)
 
     # --- 3. Final Aggregator ---
     print("\n[Final] 最終リポート構成中...")
     aggregated_intermediate = "\n\n".join(intermediate_results)
+
+    if all_failed_urls:
+        failed_urls_text = "技術的な問題で取得できなかったソース：\n" + "\n".join([f"* {url}" for url in all_failed_urls])
+    else:
+        failed_urls_text = "すべての情報ソースから正常に通信し、技術的な問題なく取得を完了しました。"
 
     final_agent = LlmAgent(
         name="FinalAggregator",
@@ -145,8 +160,7 @@ async def run_discovery():
             f"リポート生成時刻：{today.strftime('%Y-%m-%d %H:%M')} (JST)\n\n"
             f"1. 【最優先】「最新の主要アップデート」セクション：全セクションの中から、特に Gemini Enterprise の最新の更新（{limit_7days.strftime('%Y-%m-%d')}以降で最も新しいもの）を必ず最上部に要約して記載してください。ここでも必ず日付を明記してください。\n"
             "2. 「プロダクトカテゴリごとの詳細」：各専門エージェントから提供されたセクション（## ...）を、内容を間引かずにそのまま並べてください。独自に小見出し（#### 等）を立て直したり、リストのタイトルを要約・短縮したりすることは **厳禁** です。特に各項目の **[YYYY-MM-DD：タイトル](URL)** という形式は、専門エージェントの出力を一字一句変えずにそのまま出力してください。\n"
-            "3. 「技術的なステータス」：リポートの最後に記載してください。各エージェントから「[Fetch Error]」による最終的な失敗報告が**一つでも**ある場合は、「技術的な問題で取得できなかったソース」としてそれらをリストアップしてください。もし「[Fetch Error]」の報告が**一つもない**場合は、「すべての情報ソースから正常に通信し、技術的な問題なく取得を完了しました」とだけ明記してください。リトライの有無など、取得過程に関する説明は一切不要です。\n\n"
-            "更新がなかっただけのソースについては、エラーとして扱わず、特に言及する必要はありません。"
+            f"3. 「技術的なステータス」：リポートの最後に記載してください。内容は一字一句以下の通りにしてください：\n{failed_urls_text}\n"
         )
     )
 
